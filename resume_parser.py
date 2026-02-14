@@ -28,9 +28,5 @@ def extract_docx_text(file_path):
 
 # Clean Resume Text using NLP
 def clean_text(text):
-    doc = nlp(text)
-    clean = []
-    for token in doc:
-        if not token.is_stop and not token.is_punct:
-            clean.append(token.lemma_)
-    return " ".join(clean)
+    return text.lower()
+

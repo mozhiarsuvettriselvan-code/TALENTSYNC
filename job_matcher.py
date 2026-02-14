@@ -1,12 +1,15 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from skill_extractor import extract_skills
 
-def calculate_match(resume_text, job_description):
-    text = [resume_text, job_description]
+def calculate_match_percentage(resume_text, job_description):
 
-    tfidf = TfidfVectorizer()
-    tfidf_matrix = tfidf.fit_transform(text)
+    resume_skills = extract_skills(resume_text)
+    jd_skills = extract_skills(job_description)
 
-    similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])
+    if len(jd_skills) == 0:
+        return 0
 
-    return round(similarity[0][0] * 100, 2)
+    matched = set(resume_skills).intersection(set(jd_skills))
+
+    match_percent = (len(matched) / len(jd_skills)) * 100
+
+    return match_percent
