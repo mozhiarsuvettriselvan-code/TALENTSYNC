@@ -1,110 +1,78 @@
 import streamlit as st
 from multi_matcher import match_with_multiple_jobs
 from recommender_multi import recommend_skills_for_all
-from explain_engine import explain_match, recruiter_summary
-from skill_extractor import extract_skills
-from job_processor import load_job_description
-from resume_parser import clean_text
-import os
+from explainable_engine import explain_match
+from recruiter_summary import generate_summary
 import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="TALENTSYNC", layout="wide")
+# ===== LOAD CSS =====
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-# DARK MNC STYLE UI
-st.markdown("""
-<style>
-body {
-    background-color: #0e1117;
-    color: white;
-}
-h1, h2, h3 {
-    color: #00ADB5;
-}
-.stButton>button {
-    background-color: #00ADB5;
-    color: white;
-    border-radius: 10px;
-    height: 3em;
-    width: 100%;
-}
-</style>
-""", unsafe_allow_html=True)
+local_css("styles.css")
 
-st.title("🚀 TALENTSYNC - AI Hiring Intelligence Platform")
+st.title("TALENTSYNC Resume Intelligence Dashboard")
 
-uploaded_file = st.file_uploader("Upload Your Resume", type=["pdf"])
+uploaded = st.file_uploader("Upload Resume", type=["pdf"])
 
-if uploaded_file is not None:
+if uploaded:
 
     with open("uploaded_resume.pdf", "wb") as f:
-        f.write(uploaded_file.getbuffer())
+        f.write(uploaded.read())
 
-    st.success("Resume Uploaded Successfully!")
+    skills, results = match_with_multiple_jobs("uploaded_resume.pdf")
+    rec = recommend_skills_for_all("uploaded_resume.pdf")
+    explanation = explain_match("uploaded_resume.pdf")
+    summary = generate_summary("uploaded_resume.pdf")
 
-    resume_skills, results = match_with_multiple_jobs("uploaded_resume.pdf")
-    recommendations = recommend_skills_for_all("uploaded_resume.pdf")
-
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    job_folder = os.path.join(BASE_DIR, "data", "jobs")
-
-    missing_dict = {}
-    explain_dict = {}
-
-    for job_file in os.listdir(job_folder):
-
-        job_path = os.path.join(job_folder, job_file)
-        jd = load_job_description(job_path)
-
-        cleaned_jd = clean_text(jd)
-        jd_skills = extract_skills(cleaned_jd)
-
-        role = job_file.replace(".txt", "").replace("_", " ").title()
-
-        matched = set(resume_skills).intersection(set(jd_skills))
-        missing = list(set(jd_skills) - set(resume_skills))
-
-        missing_dict[role] = missing
-        explain_dict[role] = explain_match(resume_skills, jd_skills)
-
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1,1])
 
     with col1:
-        st.subheader("🧠 Extracted Skills")
-        st.write(resume_skills)
+
+        st.markdown('<div class="skills-card">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Extracted Skills</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="skills-container">', unsafe_allow_html=True)
+        for s in skills:
+            st.markdown(f'<div class="skill-pill">{s}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Recruiter Summary</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="summary-box">{summary}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
-        st.subheader("🎯 Best Matched Role")
-        best_role = max(results, key=results.get)
-        st.success(f"{best_role} ({round(results[best_role],2)}%)")
 
-    st.markdown("## 📊 Job Role Match Percentage")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Role Match Graph</div>', unsafe_allow_html=True)
 
-    roles = list(results.keys())
-    scores = list(results.values())
+        fig, ax = plt.subplots(figsize=(4,3))
+        ax.barh(list(results.keys()), list(results.values()))
+        st.pyplot(fig)
 
-    fig, ax = plt.subplots()
-    ax.barh(roles, scores)
-    ax.set_xlabel("Match %")
-    st.pyplot(fig)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("## 📉 Missing Skills Per Role")
+    st.markdown("### Role Based Insights")
 
-    for role, skills in recommendations.items():
-        if len(skills) == 0:
-            st.success(f"{role} → You are Job Ready!")
+    for role, score in results.items():
+
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+
+        st.subheader(role)
+        st.write(f"Match Score: {round(score,2)}%")
+
+        st.markdown(f'<div class="progress-bar" style="width:{score}%"></div>', unsafe_allow_html=True)
+
+        if len(rec[role]) == 0:
+            st.write("You are Job Ready!")
         else:
-            st.warning(f"{role} → Learn: {skills}")
+            st.write("Learn:", rec[role])
 
-    st.markdown("## 🔍 Match Explanation")
+        st.write(explanation[role])
 
-    for role, explanation in explain_dict.items():
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown(f"### {role}")
-
-        for line in explanation:
-            st.write(line)
-
-    st.markdown("## 📋 Recruiter Insight Summary")
-
-    summary = recruiter_summary(results, resume_skills, missing_dict)
-    st.info(summary)
