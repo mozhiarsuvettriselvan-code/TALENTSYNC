@@ -12,9 +12,10 @@ if resume is not None:
     if st.button("Analyze Resume"):
 
         skills, match, ats, missing = run_agent(
-            "uploaded_resume.pdf",
-            r"C:\Users\Mozhiarasu\OneDrive\Desktop\TALENTSYNC\data\jobs\aws_cloud_engineer.txt"
-        )
+    "uploaded_resume.pdf",
+    "data/jobs/aws_cloud_engineer.txt"
+)
+
 
         st.subheader("Extracted Skills")
         st.write(skills)
