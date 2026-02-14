@@ -1,0 +1,1 @@
+We are looking for an AWS Cloud Engineer with experience in EC2, S3, IAM, VPC, Python and Linux. The candidate should have knowledge in cloud computing, networking and DevOps practices.
